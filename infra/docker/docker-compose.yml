@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vpn-registry-db
+    environment:
+      POSTGRES_DB: vpn_registry
+      POSTGRES_USER: vpn_user
+      POSTGRES_PASSWORD: vpn_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  registry:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.registry
+    container_name: vpn-registry-server
+    environment:
+      PORT: 8080
+      JDBC_DATABASE_URL: jdbc:postgresql://postgres:5432/vpn_registry
+      JDBC_DRIVER: org.postgresql.Driver
+      DB_USER: vpn_user
+      DB_PASSWORD: vpn_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  pgdata:

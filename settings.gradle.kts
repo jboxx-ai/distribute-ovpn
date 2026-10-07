@@ -19,6 +19,8 @@ rootProject.name = "vpn-kmp-platform"
 // Shared KMP modules
 include(":shared:api-model")
 include(":shared:domain")
+include(":shared:profile-policy")
 include(":shared:crypto")
 include(":shared:persistence")
 include(":shared:telemetry")
+include(":backend:registry-server")
