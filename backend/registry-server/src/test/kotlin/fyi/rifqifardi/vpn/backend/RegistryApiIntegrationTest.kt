@@ -63,7 +63,7 @@ class RegistryApiIntegrationTest {
 
         val uploadResp = client.post("/api/v1/profiles/corp-vpn/versions") {
             contentType(ContentType.Application.Json)
-            setBody(UploadVersionRequest(ovpnContent = ovpn, signature = "sig_v1", keyId = "key_1"))
+            setBody(UploadVersionRequest(ovpnContent = ovpn))
         }
         assertEquals(HttpStatusCode.Created, uploadResp.status)
 

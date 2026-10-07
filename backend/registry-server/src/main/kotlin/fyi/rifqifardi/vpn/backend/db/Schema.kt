@@ -36,3 +36,33 @@ object ChannelPublicationsTable : Table("channel_publications") {
 
     override val primaryKey = PrimaryKey(channel, profileId)
 }
+
+object DevicesTable : Table("devices") {
+    val id = varchar("id", 64)
+    val name = varchar("name", 128)
+    val platform = varchar("platform", 32)
+    val apiKey = varchar("api_key", 128)
+    val status = varchar("status", 32)
+    val assignedProfileId = reference("assigned_profile_id", ProfilesTable.id)
+    val assignedChannel = varchar("assigned_channel", 32)
+    val enrolledAtEpochMs = long("enrolled_at_epoch_ms")
+    val lastSeenAtEpochMs = long("last_seen_at_epoch_ms").nullable()
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("idx_device_api_key_unique", apiKey)
+    }
+}
+
+object EnrollmentTokensTable : Table("enrollment_tokens") {
+    val token = varchar("token", 64)
+    val deviceName = varchar("device_name", 128)
+    val platform = varchar("platform", 32)
+    val assignedProfileId = reference("assigned_profile_id", ProfilesTable.id)
+    val assignedChannel = varchar("assigned_channel", 32)
+    val expiresAtEpochMs = long("expires_at_epoch_ms")
+    val used = bool("used").default(false)
+
+    override val primaryKey = PrimaryKey(token)
+}

@@ -1,13 +1,8 @@
 package fyi.rifqifardi.vpn.backend
 
-import fyi.rifqifardi.vpn.backend.db.ChannelPublicationsTable
-import fyi.rifqifardi.vpn.backend.db.ProfileVersionsTable
-import fyi.rifqifardi.vpn.backend.db.ProfilesTable
+import fyi.rifqifardi.vpn.backend.db.*
 import fyi.rifqifardi.vpn.backend.service.ProfileRegistryService
-import fyi.rifqifardi.vpn.model.ApiEnvelope
-import fyi.rifqifardi.vpn.model.ErrorCode
-import fyi.rifqifardi.vpn.model.ProfileManifest
-import fyi.rifqifardi.vpn.model.ReleaseChannel
+import fyi.rifqifardi.vpn.model.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -33,9 +28,7 @@ data class CreateProfileRequest(
 
 @Serializable
 data class UploadVersionRequest(
-    val ovpnContent: String,
-    val signature: String = "dev_sig",
-    val keyId: String = "dev_key"
+    val ovpnContent: String
 )
 
 @Serializable
@@ -63,6 +56,60 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
     }
 
     routing {
+        // --- Public / Device Enrollment API ---
+        route("/api/v1/devices") {
+            post("/tokens") {
+                val req = call.receive<EnrollmentTokenRequest>()
+                val res = service.createEnrollmentToken(req)
+                call.respond(HttpStatusCode.Created, ApiEnvelope.ok(res))
+            }
+
+            post("/enroll") {
+                val req = call.receive<EnrollDeviceRequest>()
+                val creds = service.enrollDevice(req)
+                if (creds != null) {
+                    call.respond(HttpStatusCode.Created, ApiEnvelope.ok(creds))
+                } else {
+                    call.respond(HttpStatusCode.Unauthorized, ApiEnvelope.failure<Unit>(ErrorCode.UNAUTHORIZED, "Invalid or expired enrollment token"))
+                }
+            }
+
+            post("/{id}/revoke") {
+                val deviceId = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                val revoked = service.revokeDevice(deviceId)
+                if (revoked) {
+                    call.respond(HttpStatusCode.OK, ApiEnvelope.ok(mapOf("revoked" to true)))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, ApiEnvelope.failure<Unit>(ErrorCode.NOT_FOUND, "Device not found"))
+                }
+            }
+        }
+
+        // --- Authenticated Device Profile Sync API ---
+        route("/api/v1/sync") {
+            get("/manifest") {
+                val authHeader = call.request.headers["Authorization"]
+                val apiKey = authHeader?.removePrefix("Bearer ")?.trim()
+                if (apiKey.isNullOrEmpty()) {
+                    return@get call.respond(HttpStatusCode.Unauthorized, ApiEnvelope.failure<Unit>(ErrorCode.UNAUTHORIZED, "Missing Bearer token"))
+                }
+
+                val device = service.authenticateDevice(apiKey)
+                if (device == null) {
+                    return@get call.respond(HttpStatusCode.Forbidden, ApiEnvelope.failure<Unit>(ErrorCode.FORBIDDEN, "Device revoked or unauthorized"))
+                }
+
+                val baseUrl = "${call.request.local.scheme}://${call.request.local.serverHost}:${call.request.local.serverPort}"
+                val manifest = service.getManifest(device.assignedProfileId, device.assignedChannel, baseUrl)
+                if (manifest != null) {
+                    call.respond(HttpStatusCode.OK, ApiEnvelope.ok(manifest))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, ApiEnvelope.failure<Unit>(ErrorCode.NOT_FOUND, "No active profile version published for device channel"))
+                }
+            }
+        }
+
+        // --- Admin Profile & Version Management API ---
         route("/api/v1/profiles") {
             post {
                 val req = call.receive<CreateProfileRequest>()
@@ -77,7 +124,7 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
             post("/{id}/versions") {
                 val profileId = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                 val req = call.receive<UploadVersionRequest>()
-                val result = service.uploadVersion(profileId, req.ovpnContent, req.signature, req.keyId)
+                val result = service.uploadVersion(profileId, req.ovpnContent)
                 result.fold(
                     onSuccess = { ver ->
                         call.respond(HttpStatusCode.Created, ApiEnvelope.ok(mapOf("version" to ver)))
@@ -140,7 +187,13 @@ fun main() {
     )
 
     transaction {
-        SchemaUtils.create(ProfilesTable, ProfileVersionsTable, ChannelPublicationsTable)
+        SchemaUtils.create(
+            ProfilesTable,
+            ProfileVersionsTable,
+            ChannelPublicationsTable,
+            DevicesTable,
+            EnrollmentTokensTable
+        )
     }
 
     embeddedServer(Netty, port = System.getenv("PORT")?.toIntOrNull() ?: 8080, host = "0.0.0.0", module = Application::module)

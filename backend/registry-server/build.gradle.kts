@@ -12,6 +12,7 @@ dependencies {
     implementation(project(":shared:api-model"))
     implementation(project(":shared:profile-policy"))
     implementation(project(":shared:domain"))
+    implementation(project(":shared:crypto"))
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
