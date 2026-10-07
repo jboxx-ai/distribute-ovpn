@@ -21,6 +21,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
         }
         commonTest.dependencies {
+            implementation(project(":shared:persistence"))
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
