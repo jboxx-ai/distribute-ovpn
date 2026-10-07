@@ -4,32 +4,49 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: vpn-registry-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: vpn_registry
-      POSTGRES_USER: vpn_user
-      POSTGRES_PASSWORD: vpn_password
+      POSTGRES_DB: ${POSTGRES_DB:-vpn_registry}
+      POSTGRES_USER: ${POSTGRES_USER:-vpn_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vpn_password}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-vpn_user} -d $${POSTGRES_DB:-vpn_registry}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     ports:
-      - "5432:5432"
-    restart: unless-stopped
+      - "${POSTGRES_PORT:-5432}:5432"
 
   registry:
     build:
       context: ../..
       dockerfile: infra/docker/Dockerfile.registry
     container_name: vpn-registry-server
-    environment:
-      PORT: 8080
-      JDBC_DATABASE_URL: jdbc:postgresql://postgres:5432/vpn_registry
-      JDBC_DRIVER: org.postgresql.Driver
-      DB_USER: vpn_user
-      DB_PASSWORD: vpn_password
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
     restart: unless-stopped
+    environment:
+      PORT: ${PORT:-8080}
+      JDBC_DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-vpn_registry}
+      JDBC_DRIVER: org.postgresql.Driver
+      DB_USER: ${POSTGRES_USER:-vpn_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-vpn_password}
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
 
 volumes:
   pgdata:

@@ -1,5 +1,6 @@
 package fyi.rifqifardi.vpn.backend
 
+import fyi.rifqifardi.vpn.backend.audit.AuditLogsTable
 import fyi.rifqifardi.vpn.backend.db.*
 import fyi.rifqifardi.vpn.backend.service.ProfileRegistryService
 import fyi.rifqifardi.vpn.model.*
@@ -56,6 +57,24 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
     }
 
     routing {
+        // --- Healthcheck Probe ---
+        get("/healthz") {
+            val dbHealthy = try {
+                transaction {
+                    ProfilesTable.selectAll().limit(1).count()
+                }
+                true
+            } catch (e: Exception) {
+                false
+            }
+
+            if (dbHealthy) {
+                call.respond(HttpStatusCode.OK, mapOf("status" to "UP", "database" to "CONNECTED"))
+            } else {
+                call.respond(HttpStatusCode.ServiceUnavailable, mapOf("status" to "DOWN", "database" to "DISCONNECTED"))
+            }
+        }
+
         // --- Public / Device Enrollment API ---
         route("/api/v1/devices") {
             post("/tokens") {
@@ -192,7 +211,8 @@ fun main() {
             ProfileVersionsTable,
             ChannelPublicationsTable,
             DevicesTable,
-            EnrollmentTokensTable
+            EnrollmentTokensTable,
+            AuditLogsTable
         )
     }
 

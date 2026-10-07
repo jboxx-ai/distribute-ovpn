@@ -1,9 +1,40 @@
-FROM eclipse-temurin:17-jre-jammy
+# Multi-stage production build for KMP VPN Registry Server
+FROM eclipse-temurin:17-jdk-jammy AS builder
+
+WORKDIR /build
+
+# Copy Gradle wrappers and build definitions first for layer caching
+COPY gradle/ gradle/
+COPY gradlew gradlew.bat settings.gradle.kts build.gradle.kts gradle.properties /build/
+COPY shared/ /build/shared/
+COPY backend/ /build/backend/
+
+# Build registry server distribution package
+RUN ./gradlew :backend:registry-server:installDist --no-daemon -x test
+
+# Runtime image with minimal JRE footprint and non-root security
+FROM eclipse-temurin:17-jre-jammy AS runner
 
 WORKDIR /app
-COPY backend/registry-server/build/libs/registry-server-all.jar /app/app.jar
 
-ENV PORT=8080
+# Non-root user creation (UID/GID 10001)
+RUN groupadd -g 10001 vpnapp && \
+    useradd -u 10001 -g vpnapp -d /app -s /bin/sh vpnapp && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends curl wget && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy built artifacts from builder stage
+COPY --from=builder --chown=vpnapp:vpnapp /build/backend/registry-server/build/install/registry-server /app/
+
+USER 10001:10001
+
+ENV PORT=8080 \
+    JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
+
+ENTRYPOINT ["/app/bin/registry-server"]
