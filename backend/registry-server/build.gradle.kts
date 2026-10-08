@@ -26,6 +26,7 @@ dependencies {
     implementation(libs.exposed.datetime)
     implementation(libs.hikari.cp)
     implementation(libs.postgresql)
+    implementation(libs.h2)
     implementation(libs.logback)
 
     testImplementation(libs.kotlin.test)
