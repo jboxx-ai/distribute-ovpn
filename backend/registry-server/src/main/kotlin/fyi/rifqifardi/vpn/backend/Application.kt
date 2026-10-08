@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
 @Serializable
@@ -57,6 +58,46 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
     }
 
     routing {
+        // --- Root Welcome & Documentation ---
+        get("/") {
+            val html = """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>OpenSpec KMP VPN Registry Server</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #24292f; }
+                        h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 8px; }
+                        .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #dafbe1; color: #1a7f37; }
+                        pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
+                        code { font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace; font-size: 13px; }
+                        a { color: #0969da; text-decoration: none; }
+                        a:hover { text-decoration: underline; }
+                    </style>
+                </head>
+                <body>
+                    <h1>OpenSpec KMP VPN Registry <span class="badge">ONLINE</span></h1>
+                    <p>Welcome to the self-hosted configuration control plane for the OpenSpec KMP VPN Platform.</p>
+                    
+                    <h3>System Endpoints</h3>
+                    <ul>
+                        <li><a href="/healthz"><code>GET /healthz</code></a> — Liveness & database connection probe</li>
+                        <li><code>POST /api/v1/devices/tokens</code> — Generate single-use enrollment token</li>
+                        <li><code>POST /api/v1/devices/enroll</code> — Device enrollment & credential issuance</li>
+                        <li><code>GET /api/v1/sync/manifest</code> — Authenticated profile sync (Bearer token required)</li>
+                        <li><code>GET /api/v1/profiles/{id}/manifest</code> — Public manifest query by channel</li>
+                    </ul>
+
+                    <h3>Status Check</h3>
+                    <p>Registry service is fully operational. To inspect health:</p>
+                    <pre><code>curl -i http://100.78.85.58:8080/healthz</code></pre>
+                </body>
+                </html>
+            """.trimIndent()
+            call.respondText(html, ContentType.Text.Html)
+        }
+
         // --- Healthcheck Probe ---
         get("/healthz") {
             val dbHealthy = try {
