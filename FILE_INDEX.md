@@ -61,5 +61,15 @@
 - `openspec/changes/phase-07-production-hardening/specs/security-hardening/spec.md`
 - `openspec/changes/phase-07-production-hardening/specs/upgrade-compatibility/spec.md`
 - `openspec/changes/phase-07-production-hardening/tasks.md`
+- `openspec/changes/phase-08-ui-console-registry/design.md`
+- `openspec/changes/phase-08-ui-console-registry/proposal.md`
+- `openspec/changes/phase-08-ui-console-registry/tasks.md`
+- `openspec/changes/phase-09-ui-android-client/design.md`
+- `openspec/changes/phase-09-ui-android-client/proposal.md`
+- `openspec/changes/phase-09-ui-android-client/tasks.md`
+- `openspec/changes/phase-10-ui-macos-client/design.md`
+- `openspec/changes/phase-10-ui-macos-client/proposal.md`
+- `openspec/changes/phase-10-ui-macos-client/tasks.md`
+- `docs/wiki/ui-design-systems.md`
 - `openspec/config.yaml`
 - `openspec/specs/README.md`
