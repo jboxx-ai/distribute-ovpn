@@ -149,6 +149,11 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
 
         // --- Public / Device Enrollment API ---
         route("/api/v1/devices") {
+            get {
+                val devices = service.listDevices()
+                call.respond(HttpStatusCode.OK, ApiEnvelope.ok(devices))
+            }
+
             post("/tokens") {
                 val req = call.receive<EnrollmentTokenRequest>()
                 val res = service.createEnrollmentToken(req)
@@ -173,6 +178,14 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
                 } else {
                     call.respond(HttpStatusCode.NotFound, ApiEnvelope.failure<Unit>(ErrorCode.NOT_FOUND, "Device not found"))
                 }
+            }
+        }
+
+        // --- Audit Logs API ---
+        route("/api/v1/audit") {
+            get {
+                val logs = service.listAuditLogs()
+                call.respond(HttpStatusCode.OK, ApiEnvelope.ok(logs))
             }
         }
 
@@ -202,6 +215,11 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
 
         // --- Admin Profile & Version Management API ---
         route("/api/v1/profiles") {
+            get {
+                val profiles = service.listProfiles()
+                call.respond(HttpStatusCode.OK, ApiEnvelope.ok(profiles))
+            }
+
             post {
                 val req = call.receive<CreateProfileRequest>()
                 val created = service.createProfile(req.id, req.name, req.description)

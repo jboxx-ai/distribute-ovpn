@@ -82,3 +82,27 @@ data class ProfileManifest(
     val downloadUrl: String,
     val createdAtEpochMs: Long
 )
+
+@Serializable
+data class ProfileSummary(
+    val id: String,
+    val name: String,
+    val description: String? = null,
+    val createdAtEpochMs: Long,
+    val totalVersions: Long,
+    val latestVersion: Long,
+    val stableVersion: Long? = null,
+    val betaVersion: Long? = null,
+    val canaryVersion: Long? = null
+)
+
+@Serializable
+data class AuditLogEntry(
+    val id: String,
+    val actor: String,
+    val action: String,
+    val targetType: String,
+    val targetId: String,
+    val detailsSanitized: String,
+    val timestampEpochMs: Long
+)

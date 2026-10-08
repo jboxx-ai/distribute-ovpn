@@ -220,6 +220,81 @@ class ProfileRegistryService(
         updated > 0
     }
 
+    fun listProfiles(): List<ProfileSummary> = transaction {
+        val profiles = ProfilesTable.selectAll().toList()
+        profiles.map { row ->
+            val pId = row[ProfilesTable.id]
+            val versionsCount = ProfileVersionsTable.selectAll().where { ProfileVersionsTable.profileId eq pId }.count()
+            val latestVer = ProfileVersionsTable.selectAll().where { ProfileVersionsTable.profileId eq pId }
+                .maxOfOrNull { it[ProfileVersionsTable.version] } ?: 0L
+            
+            val stablePub = ChannelPublicationsTable.selectAll()
+                .where { (ChannelPublicationsTable.profileId eq pId) and (ChannelPublicationsTable.channel eq "STABLE") }
+                .singleOrNull()
+            val stableVer = stablePub?.let { pub ->
+                ProfileVersionsTable.selectAll().where { ProfileVersionsTable.id eq pub[ChannelPublicationsTable.activeVersionId] }
+                    .singleOrNull()?.get(ProfileVersionsTable.version)
+            }
+
+            val betaPub = ChannelPublicationsTable.selectAll()
+                .where { (ChannelPublicationsTable.profileId eq pId) and (ChannelPublicationsTable.channel eq "BETA") }
+                .singleOrNull()
+            val betaVer = betaPub?.let { pub ->
+                ProfileVersionsTable.selectAll().where { ProfileVersionsTable.id eq pub[ChannelPublicationsTable.activeVersionId] }
+                    .singleOrNull()?.get(ProfileVersionsTable.version)
+            }
+
+            val canaryPub = ChannelPublicationsTable.selectAll()
+                .where { (ChannelPublicationsTable.profileId eq pId) and (ChannelPublicationsTable.channel eq "CANARY") }
+                .singleOrNull()
+            val canaryVer = canaryPub?.let { pub ->
+                ProfileVersionsTable.selectAll().where { ProfileVersionsTable.id eq pub[ChannelPublicationsTable.activeVersionId] }
+                    .singleOrNull()?.get(ProfileVersionsTable.version)
+            }
+
+            ProfileSummary(
+                id = pId,
+                name = row[ProfilesTable.name],
+                description = row[ProfilesTable.description],
+                createdAtEpochMs = row[ProfilesTable.createdAtEpochMs],
+                totalVersions = versionsCount,
+                latestVersion = latestVer,
+                stableVersion = stableVer,
+                betaVersion = betaVer,
+                canaryVersion = canaryVer
+            )
+        }
+    }
+
+    fun listDevices(): List<DeviceInfo> = transaction {
+        DevicesTable.selectAll().map { row ->
+            DeviceInfo(
+                deviceId = row[DevicesTable.id],
+                deviceName = row[DevicesTable.name],
+                platform = DevicePlatform.valueOf(row[DevicesTable.platform]),
+                status = DeviceStatus.valueOf(row[DevicesTable.status]),
+                assignedProfileId = row[DevicesTable.assignedProfileId],
+                assignedChannel = ReleaseChannel.valueOf(row[DevicesTable.assignedChannel]),
+                enrolledAtEpochMs = row[DevicesTable.enrolledAtEpochMs],
+                lastSeenAtEpochMs = row[DevicesTable.lastSeenAtEpochMs]
+            )
+        }
+    }
+
+    fun listAuditLogs(): List<AuditLogEntry> = transaction {
+        fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.selectAll().orderBy(fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.timestampEpochMs to SortOrder.DESC).limit(50).map { row ->
+            AuditLogEntry(
+                id = row[fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.id],
+                actor = row[fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.actor],
+                action = row[fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.action],
+                targetType = row[fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.targetType],
+                targetId = row[fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.targetId],
+                detailsSanitized = row[fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.detailsSanitized],
+                timestampEpochMs = row[fyi.rifqifardi.vpn.backend.audit.AuditLogsTable.timestampEpochMs]
+            )
+        }
+    }
+
     private fun calculateSha256(bytes: ByteArray): String {
         val md = MessageDigest.getInstance("SHA-256")
         return md.digest(bytes).joinToString("") { "%02x".format(it) }

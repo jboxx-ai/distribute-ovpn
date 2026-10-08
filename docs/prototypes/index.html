@@ -200,5 +200,77 @@
       document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => { const target = button.dataset.nav; document.querySelectorAll("[data-nav]").forEach((item) => item.removeAttribute("aria-current")); document.querySelectorAll(`[data-nav="${target}"]`).forEach((item) => item.setAttribute("aria-current", "page")); if (target === "profiles") $("#profiles").scrollIntoView({ behavior: "smooth", block: "start" }); else if (target === "overview") $("#overview").scrollIntoView({ behavior: "smooth", block: "start" }); else toast(`${target[0].toUpperCase() + target.slice(1)} is planned for a later registry phase.`); }));
       renderProfiles(); renderDetail();
     </script>
-  </body>
+  
+<script>
+// --- LIVE BACKEND INTEGRATION ---
+async function fetchProfiles() {
+  try {
+    const res = await fetch('/api/v1/profiles');
+    if (!res.ok) return;
+    const json = await res.json();
+    if (json.success && json.data) {
+      console.log('Loaded profiles from backend:', json.data);
+    }
+  } catch(e) {
+    console.warn('Backend sync:', e);
+  }
+}
+
+async function fetchDevices() {
+  try {
+    const res = await fetch('/api/v1/devices');
+    if (!res.ok) return;
+    const json = await res.json();
+    if (json.success && json.data) {
+      console.log('Loaded devices from backend:', json.data);
+    }
+  } catch(e) {
+    console.warn('Backend sync:', e);
+  }
+}
+
+async function fetchAuditLogs() {
+  try {
+    const res = await fetch('/api/v1/audit');
+    if (!res.ok) return;
+    const json = await res.json();
+    if (json.success && json.data) {
+      console.log('Loaded audit logs from backend:', json.data);
+    }
+  } catch(e) {
+    console.warn('Backend sync:', e);
+  }
+}
+
+// Hook enrollment modal submission to live backend
+window.generateLiveToken = async function(deviceName, platform, profileId, channel) {
+  try {
+    const res = await fetch('/api/v1/devices/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deviceName: deviceName || 'New Device',
+        platform: platform || 'ANDROID',
+        assignedProfileId: profileId || 'eng-corp-gw',
+        assignedChannel: channel || 'STABLE',
+        expiresInMinutes: 60
+      })
+    });
+    const json = await res.json();
+    if (json.success && json.data) {
+      return json.data.token;
+    }
+  } catch (e) {
+    console.error('Failed to create token:', e);
+  }
+  return null;
+};
+
+// Initial load
+fetchProfiles();
+fetchDevices();
+fetchAuditLogs();
+</script>
+
+</body>
 </html>
