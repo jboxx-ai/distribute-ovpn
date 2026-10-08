@@ -60,9 +60,14 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
     }
 
     routing {
-        // --- Static UI Console & Prototypes Routing ---
+        // --- Static UI Console & Assets Routing ---
         val consoleDist = File("backend/console-ui/dist")
+        val assetsDist = File("backend/console-ui/dist/assets")
         val prototypesDir = File("docs/prototypes")
+
+        if (assetsDist.exists()) {
+            staticFiles("/assets", assetsDist)
+        }
 
         if (consoleDist.exists()) {
             staticFiles("/console", consoleDist) {
