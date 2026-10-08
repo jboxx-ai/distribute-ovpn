@@ -8,12 +8,14 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.io.File
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.Database
@@ -58,44 +60,68 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
     }
 
     routing {
+        // --- Static UI Console & Prototypes Routing ---
+        val consoleDist = File("backend/console-ui/dist")
+        val prototypesDir = File("docs/prototypes")
+
+        if (consoleDist.exists()) {
+            staticFiles("/console", consoleDist) {
+                default("index.html")
+            }
+        }
+
+        if (prototypesDir.exists()) {
+            staticFiles("/prototypes", prototypesDir) {
+                default("index.html")
+            }
+        }
+
         // --- Root Welcome & Documentation ---
         get("/") {
-            val html = """
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>OpenSpec KMP VPN Registry Server</title>
-                    <style>
-                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #24292f; }
-                        h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 8px; }
-                        .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #dafbe1; color: #1a7f37; }
-                        pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
-                        code { font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace; font-size: 13px; }
-                        a { color: #0969da; text-decoration: none; }
-                        a:hover { text-decoration: underline; }
-                    </style>
-                </head>
-                <body>
-                    <h1>OpenSpec KMP VPN Registry <span class="badge">ONLINE</span></h1>
-                    <p>Welcome to the self-hosted configuration control plane for the OpenSpec KMP VPN Platform.</p>
-                    
-                    <h3>System Endpoints</h3>
-                    <ul>
-                        <li><a href="/healthz"><code>GET /healthz</code></a> — Liveness & database connection probe</li>
-                        <li><code>POST /api/v1/devices/tokens</code> — Generate single-use enrollment token</li>
-                        <li><code>POST /api/v1/devices/enroll</code> — Device enrollment & credential issuance</li>
-                        <li><code>GET /api/v1/sync/manifest</code> — Authenticated profile sync (Bearer token required)</li>
-                        <li><code>GET /api/v1/profiles/{id}/manifest</code> — Public manifest query by channel</li>
-                    </ul>
+            val distFile = File("backend/console-ui/dist/index.html")
+            if (distFile.exists()) {
+                call.respondFile(distFile)
+            } else {
+                val html = """
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>OpenSpec KMP VPN Registry Server</title>
+                        <style>
+                            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #e6edf3; background: #0d1117; }
+                            h1 { border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+                            .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #1f3fb950; color: #3fb950; border: 1px solid #3fb950; }
+                            pre { background: #010409; padding: 16px; border-radius: 6px; overflow-x: auto; border: 1px solid #30363d; }
+                            code { font-family: ui-monospace, monospace; font-size: 13px; color: #f38020; }
+                            a { color: #58a6ff; text-decoration: none; }
+                            a:hover { text-decoration: underline; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>OpenSpec KMP VPN Registry <span class="badge">ONLINE</span></h1>
+                        <p>Welcome to the self-hosted configuration control plane for the OpenSpec KMP VPN Platform (Cloudflare Kumo UI).</p>
+                        
+                        <h3>Surfaces & Console</h3>
+                        <ul>
+                            <li><a href="/console"><code>/console</code></a> — Cloudflare Kumo Web Console SPA</li>
+                            <li><a href="/prototypes/index.html"><code>/prototypes/index.html</code></a> — Operator Console Prototype</li>
+                            <li><a href="/prototypes/android-client.html"><code>/prototypes/android-client.html</code></a> — Android Client Prototype</li>
+                            <li><a href="/prototypes/macos-client.html"><code>/prototypes/macos-client.html</code></a> — macOS Client Prototype</li>
+                        </ul>
 
-                    <h3>Status Check</h3>
-                    <p>Registry service is fully operational. To inspect health:</p>
-                    <pre><code>curl -i http://100.78.85.58:8080/healthz</code></pre>
-                </body>
-                </html>
-            """.trimIndent()
-            call.respondText(html, ContentType.Text.Html)
+                        <h3>System Endpoints</h3>
+                        <ul>
+                            <li><a href="/healthz"><code>GET /healthz</code></a> — Liveness & database probe</li>
+                            <li><code>POST /api/v1/devices/tokens</code> — Generate single-use enrollment token</li>
+                            <li><code>POST /api/v1/devices/enroll</code> — Device enrollment & credential issuance</li>
+                            <li><code>GET /api/v1/sync/manifest</code> — Authenticated profile sync</li>
+                        </ul>
+                    </body>
+                    </html>
+                """.trimIndent()
+                call.respondText(html, ContentType.Text.Html)
+            }
         }
 
         // --- Healthcheck Probe ---
@@ -110,7 +136,7 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
             }
 
             if (dbHealthy) {
-                call.respond(HttpStatusCode.OK, mapOf("status" to "UP", "database" to "CONNECTED"))
+                call.respond(HttpStatusCode.OK, mapOf("status" to "UP", "database" to "CONNECTED", "ui" to "KUMO_ACTIVE"))
             } else {
                 call.respond(HttpStatusCode.ServiceUnavailable, mapOf("status" to "DOWN", "database" to "DISCONNECTED"))
             }

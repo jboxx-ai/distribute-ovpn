@@ -1,4 +1,12 @@
 # Multi-stage production build for KMP VPN Registry Server
+FROM node:22-alpine AS ui-builder
+
+WORKDIR /ui
+COPY backend/console-ui/package*.json ./
+RUN npm ci --silent
+COPY backend/console-ui/ ./
+RUN npm run build
+
 FROM eclipse-temurin:17-jdk-jammy AS builder
 
 WORKDIR /build
@@ -26,6 +34,8 @@ RUN groupadd -g 10001 vpnapp && \
 
 # Copy built artifacts from builder stage
 COPY --from=builder --chown=vpnapp:vpnapp /build/backend/registry-server/build/install/registry-server /app/
+COPY --from=ui-builder --chown=vpnapp:vpnapp /ui/dist /app/backend/console-ui/dist
+COPY --chown=vpnapp:vpnapp docs/prototypes /app/docs/prototypes
 
 USER 10001:10001
 
