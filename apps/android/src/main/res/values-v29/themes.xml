@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  VERSION GUARD: API 29 and up.
+
+  android:enforceStatusBarContrast and android:enforceNavigationBarContrast were
+  added in API 29. They must NOT appear in res/values/ or res/values-v27/ given
+  minSdk 26; that produces an aapt resource-link failure at build time. The -v29
+  qualifier scopes them to devices that define them.
+
+  Both default to true on API 29+, which can inject a system-chosen scrim over
+  our bars. Enforcement is disabled here so the pure Kumo canvas (#0D1117) shows
+  through the transparent bars edge-to-edge with no surprise overlay, matching
+  what MainActivity paints programmatically.
+
+  The full Theme.Kumo body is repeated rather than inherited: Android styles do
+  not chain across qualified directories automatically, and being explicit keeps
+  the intent auditable.
+-->
+<resources>
+    <style name="Theme.Kumo" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/kumo_base</item>
+        <item name="android:colorBackground">@color/kumo_base</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:textColorPrimary">@color/kumo_primary_text</item>
+        <item name="android:textColorSecondary">@color/kumo_muted_text</item>
+        <item name="android:colorAccent">@color/kumo_brand</item>
+    </style>
+</resources>

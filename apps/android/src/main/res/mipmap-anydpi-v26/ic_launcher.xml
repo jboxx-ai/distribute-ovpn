@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive launcher icon (API 26+).
+
+  minSdk 26 IS the adaptive-icon API floor, so this monochrome-vector layer pair
+  is sufficient: no density-bucket PNG mipmaps are required. AOSP generates the
+  masked bitmaps from these layers at install time. This is a deliberate
+  simplification, not an omission.
+
+  Background is the Kumo canvas base (#FF0D1117) rather than white or brand
+  orange, so the icon reads as part of the same dark surface family the app
+  renders inside.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/kumo_base" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <!-- Optional on API 33+; harmless to declare now and ignored below 33.
+         Monochrome layer lets themed icons render the same shield glyph. -->
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>

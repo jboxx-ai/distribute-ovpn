@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cloudflare Kumo semantic color tokens for Android resource layer.
+  MUST stay in lockstep with apps/android/.../KumoTheme.kt (object KumoColors).
+  KumoTheme.kt holds these as ARGB Long constants consumed by programmatic Views;
+  this file exposes the same values to XML (themes, adaptive icon background).
+-->
+<resources>
+    <!-- Surfaces -->
+    <color name="kumo_base">#FF0D1117</color>
+    <color name="kumo_elevated">#FF161B22</color>
+    <color name="kumo_recessed">#FF010409</color>
+    <color name="kumo_line">#FF30363D</color>
+
+    <!-- Brand -->
+    <color name="kumo_brand">#FFF38020</color>
+
+    <!-- Text -->
+    <color name="kumo_primary_text">#FFE6EDF3</color>
+    <color name="kumo_muted_text">#FF8B949E</color>
+
+    <!-- Status semantics -->
+    <color name="kumo_success">#FF3FB950</color>
+    <color name="kumo_success_subtle">#1F3FB950</color>
+    <color name="kumo_warning">#FFD29922</color>
+    <color name="kumo_warning_subtle">#1FD29922</color>
+    <color name="kumo_danger">#FFF85149</color>
+    <color name="kumo_danger_subtle">#1FF85149</color>
+</resources>

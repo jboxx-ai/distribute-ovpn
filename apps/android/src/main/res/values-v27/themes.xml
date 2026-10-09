@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  VERSION GUARD: API 27 and up.
+
+  android:windowLightNavigationBar was added in API 27. It cannot live in
+  res/values/themes.xml with minSdk 26; aapt would emit a resource-link error.
+  Qualifying this directory as -v27 makes it apply only on devices that actually
+  have the attribute, and API 26 devices fall back to res/values/themes.xml
+  untouched.
+
+  Set false so nav-bar glyphs render light on the dark Kumo canvas.
+-->
+<resources>
+    <style name="Theme.Kumo" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/kumo_base</item>
+        <item name="android:colorBackground">@color/kumo_base</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:textColorPrimary">@color/kumo_primary_text</item>
+        <item name="android:textColorSecondary">@color/kumo_muted_text</item>
+        <item name="android:colorAccent">@color/kumo_brand</item>
+    </style>
+</resources>

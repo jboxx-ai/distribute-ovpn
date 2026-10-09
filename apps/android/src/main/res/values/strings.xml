@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Value carried over VERBATIM from the previous hardcoded android:label in
+      AndroidManifest.xml ("KMP VPN Client"). Deliberately NOT renamed to match
+      MainActivity's in-app title "Vault VPN": the product name is an open
+      copy/marketing decision owned by @product. Changing it here would silently
+      pick a winner. When @product closes that decision, update this one string
+      and nothing else.
+    -->
+    <string name="app_name">KMP VPN Client</string>
+</resources>

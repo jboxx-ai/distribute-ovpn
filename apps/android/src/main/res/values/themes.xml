@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Base app theme, API 26 floor.
+
+  VERSION GUARD: this file may only use attributes that exist at minSdk 26.
+  windowLightNavigationBar is API 27+ -> res/values-v27/themes.xml
+  enforceStatusBarContrast / enforceNavigationBarContrast are API 29+ -> res/values-v29/themes.xml
+  Putting them here produces an aapt resource-link failure at build time.
+
+  THEME TRAP (do not "fix" this by adding bar colors): targetSdk 35 forces
+  edge-to-edge and IGNORES android:statusBarColor / android:navigationBarColor.
+  The system bars render transparent and the dark canvas shows through
+  android:windowBackground. So windowBackground is the lever that actually
+  controls what the user sees behind the bars; bar-color attributes do nothing.
+  Empirically confirmed by the WP0 sandbox screenshot (status bar #0D1117,
+  nav bar ~#1B1C23 scrim) with no bar-color attributes set.
+-->
+<resources>
+    <style name="Theme.Kumo" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <!-- Kumo canvas: the single source of truth for what shows behind the
+             transparent system bars on targetSdk 35. -->
+        <item name="android:windowBackground">@color/kumo_base</item>
+        <item name="android:colorBackground">@color/kumo_base</item>
+
+        <!-- White status-bar icons on the dark canvas. API 23+, safe at 26. -->
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Keep the app out of the light-theme surprise: DeviceDefault follows
+             the system setting, so pin our own surfaces explicitly. -->
+        <item name="android:textColorPrimary">@color/kumo_primary_text</item>
+        <item name="android:textColorSecondary">@color/kumo_muted_text</item>
+        <item name="android:colorAccent">@color/kumo_brand</item>
+    </style>
+</resources>
