@@ -243,8 +243,9 @@ class MainActivity : Activity() {
                     setStroke(2, KumoColors.Line.toInt())
                 }
             }
-            TunnelState.CONNECTING -> {
-                statusBadge.text = "CONNECTING..."
+            TunnelState.CONNECTING,
+            TunnelState.RECONNECTING -> {
+                statusBadge.text = if (state == TunnelState.RECONNECTING) "RECONNECTING..." else "CONNECTING..."
                 statusBadge.setTextColor(KumoColors.Warning.toInt())
                 statusBadge.background = GradientDrawable().apply {
                     setColor(KumoColors.WarningSubtle.toInt())
@@ -253,8 +254,19 @@ class MainActivity : Activity() {
                 }
                 connectButton.text = "Cancel"
             }
-            TunnelState.DISCONNECTED -> {
-                statusBadge.text = "DISCONNECTED"
+            TunnelState.DISCONNECTING -> {
+                statusBadge.text = "DISCONNECTING..."
+                statusBadge.setTextColor(KumoColors.Warning.toInt())
+                statusBadge.background = GradientDrawable().apply {
+                    setColor(KumoColors.WarningSubtle.toInt())
+                    cornerRadius = 20f
+                    setStroke(2, KumoColors.Warning.toInt())
+                }
+                connectButton.text = "Disconnecting..."
+            }
+            TunnelState.DISCONNECTED,
+            TunnelState.FAILED -> {
+                statusBadge.text = if (state == TunnelState.FAILED) "CONNECTION FAILED" else "DISCONNECTED"
                 statusBadge.setTextColor(KumoColors.Danger.toInt())
                 statusBadge.background = GradientDrawable().apply {
                     setColor(KumoColors.DangerSubtle.toInt())

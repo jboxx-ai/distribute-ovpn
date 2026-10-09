@@ -37,7 +37,7 @@ class ProfileSyncEngine(
     private val digestCalculator: DigestCalculator,
     private val httpClient: HttpClient = HttpClient {
         install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
+            json(Json { ignoreUnknownKeys = true; isLenient = true })
         }
     }
 ) {
@@ -48,18 +48,24 @@ class ProfileSyncEngine(
     suspend fun sync(): SyncResult {
         _syncState.value = SyncState.Checking
 
-        val apiKey = secureStorage.getString("device_api_key")
-            ?: return syncError("Device is not enrolled (missing API key)")
+        val token = secureStorage.getString("device_token") ?: secureStorage.getString("device_api_key")
+            ?: return syncError("Device is not enrolled (missing device token)")
+
+        val tokenExpires = secureStorage.getString("token_expires_at")?.toLongOrNull()
+        if (tokenExpires != null && kotlinx.datetime.Clock.System.now().toEpochMilliseconds() > tokenExpires) {
+            return syncError("Device token expired. Please re-authenticate.")
+        }
+
         val serverSigningKey = secureStorage.getString("server_signing_public_key")
             ?: return syncError("Device is missing server signing key")
 
         return try {
             val resp = httpClient.get("$baseUrl/api/v1/sync/manifest") {
-                header("Authorization", "Bearer $apiKey")
+                header("Authorization", "Bearer $token")
             }
 
-            if (resp.status == HttpStatusCode.Forbidden) {
-                return syncError("Device has been revoked")
+            if (resp.status == HttpStatusCode.Forbidden || resp.status == HttpStatusCode.Unauthorized) {
+                return syncError("Device has been revoked or session expired (Policy A rejection)")
             }
 
             if (!resp.status.isSuccess()) {
@@ -77,7 +83,7 @@ class ProfileSyncEngine(
 
             _syncState.value = SyncState.Downloading(manifest.version)
             val artifactResp = httpClient.get(manifest.downloadUrl) {
-                header("Authorization", "Bearer $apiKey")
+                header("Authorization", "Bearer $token")
             }
 
             if (!artifactResp.status.isSuccess()) {

@@ -57,5 +57,36 @@ data class DeviceInfo(
     val assignedProfileId: String,
     val assignedChannel: ReleaseChannel,
     val enrolledAtEpochMs: Long,
-    val lastSeenAtEpochMs: Long?
+    val lastSeenAtEpochMs: Long?,
+    val userId: String? = null,
+    val tokenExpiresAtEpochMs: Long? = null
 )
+
+@Serializable
+data class ClientAppRelease(
+    val id: String,
+    val platform: DevicePlatform,
+    val version: String,
+    val channel: ReleaseChannel = ReleaseChannel.STABLE,
+    val fileName: String,
+    val downloadUrl: String,
+    val fileSizeBytes: Long,
+    val sha256Checksum: String,
+    val minOsVersion: String,
+    val releaseNotes: String? = null,
+    val publishedAtEpochMs: Long
+)
+
+@Serializable
+data class PublishClientAppRequest(
+    val platform: DevicePlatform,
+    val version: String,
+    val channel: ReleaseChannel = ReleaseChannel.STABLE,
+    val fileName: String,
+    val downloadUrl: String,
+    val fileSizeBytes: Long,
+    val sha256Checksum: String,
+    val minOsVersion: String,
+    val releaseNotes: String? = null
+)
+

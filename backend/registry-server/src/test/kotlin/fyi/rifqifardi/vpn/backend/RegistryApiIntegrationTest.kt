@@ -27,8 +27,8 @@ class RegistryApiIntegrationTest {
     fun setupDb() {
         Database.connect("jdbc:h2:mem:test_db;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
         transaction {
-            SchemaUtils.drop(ChannelPublicationsTable, ProfileVersionsTable, ProfilesTable)
-            SchemaUtils.create(ProfilesTable, ProfileVersionsTable, ChannelPublicationsTable)
+            SchemaUtils.drop(EnrollmentTokensTable, ChannelPublicationsTable, ProfileVersionsTable, ProfilesTable)
+            SchemaUtils.create(ProfilesTable, ProfileVersionsTable, ChannelPublicationsTable, EnrollmentTokensTable)
         }
     }
 
@@ -86,5 +86,21 @@ class RegistryApiIntegrationTest {
         val artifactResp = client.get("/api/v1/profiles/corp-vpn/versions/1/artifact")
         assertEquals(HttpStatusCode.OK, artifactResp.status)
         assertEquals(ovpn, artifactResp.body())
+
+        // 6. Test Enrollment Token Generation & Foreign Key Safety
+        val tokenResp = client.post("/api/v1/devices/tokens") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                EnrollmentTokenRequest(
+                    deviceName = "test-device",
+                    platform = DevicePlatform.ANDROID,
+                    assignedProfileId = "corp-vpn"
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.Created, tokenResp.status)
+        val tokenEnvelope = tokenResp.body<ApiEnvelope<EnrollmentTokenResponse>>()
+        assertTrue(tokenEnvelope.success)
+        assertTrue(tokenEnvelope.data!!.token.isNotBlank())
     }
 }

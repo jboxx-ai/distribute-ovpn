@@ -2,6 +2,24 @@ package fyi.rifqifardi.vpn.backend.db
 
 import org.jetbrains.exposed.sql.Table
 
+object UsersTable : Table("users") {
+    val id = varchar("id", 64)
+    val username = varchar("username", 64)
+    val passwordHash = varchar("password_hash", 128)
+    val salt = varchar("salt", 64)
+    val totpSecret = varchar("totp_secret", 128)
+    val role = varchar("role", 32)
+    val status = varchar("status", 32)
+    val createdAtEpochMs = long("created_at_epoch_ms")
+    val updatedAtEpochMs = long("updated_at_epoch_ms")
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("idx_user_username_unique", username)
+    }
+}
+
 object ProfilesTable : Table("profiles") {
     val id = varchar("id", 64)
     val name = varchar("name", 128)
@@ -47,6 +65,9 @@ object DevicesTable : Table("devices") {
     val assignedChannel = varchar("assigned_channel", 32)
     val enrolledAtEpochMs = long("enrolled_at_epoch_ms")
     val lastSeenAtEpochMs = long("last_seen_at_epoch_ms").nullable()
+    val userId = varchar("user_id", 64).nullable()
+    val devicePublicKey = text("device_public_key").nullable()
+    val tokenExpiresAtEpochMs = long("token_expires_at_epoch_ms").nullable()
 
     override val primaryKey = PrimaryKey(id)
 
@@ -66,3 +87,24 @@ object EnrollmentTokensTable : Table("enrollment_tokens") {
 
     override val primaryKey = PrimaryKey(token)
 }
+
+object ClientAppReleasesTable : Table("client_app_releases") {
+    val id = varchar("id", 64)
+    val platform = varchar("platform", 32)
+    val version = varchar("version", 32)
+    val channel = varchar("channel", 32)
+    val fileName = varchar("file_name", 256)
+    val downloadUrl = varchar("download_url", 512)
+    val fileSizeBytes = long("file_size_bytes")
+    val sha256Checksum = varchar("sha256_checksum", 64)
+    val minOsVersion = varchar("min_os_version", 64)
+    val releaseNotes = text("release_notes").nullable()
+    val publishedAtEpochMs = long("published_at_epoch_ms")
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("idx_client_release_unique", platform, version, channel)
+    }
+}
+

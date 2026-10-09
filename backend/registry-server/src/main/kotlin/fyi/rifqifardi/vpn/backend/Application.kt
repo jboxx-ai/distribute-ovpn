@@ -1,6 +1,7 @@
 package fyi.rifqifardi.vpn.backend
 
 import fyi.rifqifardi.vpn.backend.audit.AuditLogsTable
+import fyi.rifqifardi.vpn.backend.auth.PasswordService
 import fyi.rifqifardi.vpn.backend.db.*
 import fyi.rifqifardi.vpn.backend.service.ProfileRegistryService
 import fyi.rifqifardi.vpn.model.*
@@ -20,6 +21,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -61,12 +63,24 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
 
     routing {
         // --- Static UI Console & Assets Routing ---
-        val consoleDist = File("backend/console-ui/dist")
-        val assetsDist = File("backend/console-ui/dist/assets")
-        val prototypesDir = File("docs/prototypes")
+        val rootDir = File(System.getenv("VPN_APP_ROOT") ?: System.getProperty("user.dir"))
+        fun resolveFile(relPath: String): File {
+            val direct = File(relPath)
+            if (direct.exists()) return direct
+            val fromHome = File("/home/sbx/work/vpn-kmp-platform", relPath)
+            if (fromHome.exists()) return fromHome
+            return File(rootDir, relPath)
+        }
+
+        val consoleDist = resolveFile("backend/console-ui/dist")
+        val assetsDist = resolveFile("backend/console-ui/dist/assets")
+        val prototypesDir = resolveFile("docs/prototypes")
 
         if (assetsDist.exists()) {
             staticFiles("/assets", assetsDist)
+        } else if (consoleDist.exists()) {
+            val subAssets = File(consoleDist, "assets")
+            if (subAssets.exists()) staticFiles("/assets", subAssets)
         }
 
         if (consoleDist.exists()) {
@@ -81,51 +95,13 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
             }
         }
 
-        // --- Root Welcome & Documentation ---
+        // --- Root Welcome & UI Redirect ---
         get("/") {
-            val distFile = File("backend/console-ui/dist/index.html")
-            if (distFile.exists()) {
-                call.respondFile(distFile)
+            val distIndex = resolveFile("backend/console-ui/dist/index.html")
+            if (distIndex.exists()) {
+                call.respondFile(distIndex)
             } else {
-                val html = """
-                    <!DOCTYPE html>
-                    <html lang="en">
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>OpenSpec KMP VPN Registry Server</title>
-                        <style>
-                            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #e6edf3; background: #0d1117; }
-                            h1 { border-bottom: 1px solid #30363d; padding-bottom: 8px; }
-                            .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #1f3fb950; color: #3fb950; border: 1px solid #3fb950; }
-                            pre { background: #010409; padding: 16px; border-radius: 6px; overflow-x: auto; border: 1px solid #30363d; }
-                            code { font-family: ui-monospace, monospace; font-size: 13px; color: #f38020; }
-                            a { color: #58a6ff; text-decoration: none; }
-                            a:hover { text-decoration: underline; }
-                        </style>
-                    </head>
-                    <body>
-                        <h1>OpenSpec KMP VPN Registry <span class="badge">ONLINE</span></h1>
-                        <p>Welcome to the self-hosted configuration control plane for the OpenSpec KMP VPN Platform (Cloudflare Kumo UI).</p>
-                        
-                        <h3>Surfaces & Console</h3>
-                        <ul>
-                            <li><a href="/console"><code>/console</code></a> — Cloudflare Kumo Web Console SPA</li>
-                            <li><a href="/prototypes/index.html"><code>/prototypes/index.html</code></a> — Operator Console Prototype</li>
-                            <li><a href="/prototypes/android-client.html"><code>/prototypes/android-client.html</code></a> — Android Client Prototype</li>
-                            <li><a href="/prototypes/macos-client.html"><code>/prototypes/macos-client.html</code></a> — macOS Client Prototype</li>
-                        </ul>
-
-                        <h3>System Endpoints</h3>
-                        <ul>
-                            <li><a href="/healthz"><code>GET /healthz</code></a> — Liveness & database probe</li>
-                            <li><code>POST /api/v1/devices/tokens</code> — Generate single-use enrollment token</li>
-                            <li><code>POST /api/v1/devices/enroll</code> — Device enrollment & credential issuance</li>
-                            <li><code>GET /api/v1/sync/manifest</code> — Authenticated profile sync</li>
-                        </ul>
-                    </body>
-                    </html>
-                """.trimIndent()
-                call.respondText(html, ContentType.Text.Html)
+                call.respondRedirect("/console", permanent = false)
             }
         }
 
@@ -147,11 +123,66 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
             }
         }
 
+        // --- Authentication & TOTP API ---
+        route("/api/v1/auth") {
+            post("/register") {
+                val req = call.receive<RegisterUserRequest>()
+                val result = service.registerUser(req.username, req.password, req.role)
+                result.fold(
+                    onSuccess = { user ->
+                        call.respond(HttpStatusCode.Created, ApiEnvelope.ok(user))
+                    },
+                    onFailure = { err ->
+                        call.respond(HttpStatusCode.BadRequest, ApiEnvelope.failure<Unit>(ErrorCode.INVALID_REQUEST, err.message ?: "Failed to register user"))
+                    }
+                )
+            }
+
+            get("/totp/setup") {
+                val username = call.request.queryParameters["username"]
+                if (username.isNullOrEmpty()) {
+                    return@get call.respond(HttpStatusCode.BadRequest, ApiEnvelope.failure<Unit>(ErrorCode.INVALID_REQUEST, "Missing username parameter"))
+                }
+                val setup = service.getTotpSetup(username)
+                if (setup != null) {
+                    call.respond(HttpStatusCode.OK, ApiEnvelope.ok(setup))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, ApiEnvelope.failure<Unit>(ErrorCode.NOT_FOUND, "User not found"))
+                }
+            }
+
+            post("/login") {
+                val req = call.receive<LoginRequest>()
+                val result = service.loginUser(req)
+                result.fold(
+                    onSuccess = { res ->
+                        call.respond(HttpStatusCode.OK, ApiEnvelope.ok(res))
+                    },
+                    onFailure = { err ->
+                        call.respond(HttpStatusCode.Unauthorized, ApiEnvelope.failure<Unit>(ErrorCode.UNAUTHORIZED, err.message ?: "Authentication failed"))
+                    }
+                )
+            }
+        }
+
         // --- Public / Device Enrollment API ---
         route("/api/v1/devices") {
             get {
                 val devices = service.listDevices()
                 call.respond(HttpStatusCode.OK, ApiEnvelope.ok(devices))
+            }
+
+            post("/authorize") {
+                val req = call.receive<AuthorizeDeviceRequest>()
+                val result = service.authorizeDevice(req)
+                result.fold(
+                    onSuccess = { res ->
+                        call.respond(HttpStatusCode.Created, ApiEnvelope.ok(res))
+                    },
+                    onFailure = { err ->
+                        call.respond(HttpStatusCode.Unauthorized, ApiEnvelope.failure<Unit>(ErrorCode.UNAUTHORIZED, err.message ?: "Device authorization failed"))
+                    }
+                )
             }
 
             post("/tokens") {
@@ -189,18 +220,18 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
             }
         }
 
-        // --- Authenticated Device Profile Sync API ---
+        // --- Authenticated Device Profile Sync API (Strict Online Policy A) ---
         route("/api/v1/sync") {
             get("/manifest") {
                 val authHeader = call.request.headers["Authorization"]
-                val apiKey = authHeader?.removePrefix("Bearer ")?.trim()
-                if (apiKey.isNullOrEmpty()) {
+                val token = authHeader?.removePrefix("Bearer ")?.trim()
+                if (token.isNullOrEmpty()) {
                     return@get call.respond(HttpStatusCode.Unauthorized, ApiEnvelope.failure<Unit>(ErrorCode.UNAUTHORIZED, "Missing Bearer token"))
                 }
 
-                val device = service.authenticateDevice(apiKey)
+                val device = service.authenticateDevice(token)
                 if (device == null) {
-                    return@get call.respond(HttpStatusCode.Forbidden, ApiEnvelope.failure<Unit>(ErrorCode.FORBIDDEN, "Device revoked or unauthorized"))
+                    return@get call.respond(HttpStatusCode.Forbidden, ApiEnvelope.failure<Unit>(ErrorCode.FORBIDDEN, "Device revoked, expired, or unauthorized"))
                 }
 
                 val baseUrl = "${call.request.local.scheme}://${call.request.local.serverHost}:${call.request.local.serverPort}"
@@ -284,12 +315,61 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
                 }
             }
         }
+
+        // --- Client Apps Management Routing ---
+        route("/api/v1/client-apps") {
+
+            get {
+                val releases = service.listClientApps()
+                call.respond(HttpStatusCode.OK, ApiEnvelope.ok(releases))
+            }
+
+            get("/latest") {
+                val platformParam = call.request.queryParameters["platform"]?.uppercase()
+                val platform = try {
+                    if (platformParam != null) DevicePlatform.valueOf(platformParam) else null
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (platform == null) {
+                    return@get call.respond(HttpStatusCode.BadRequest, ApiEnvelope.failure<Unit>(ErrorCode.INVALID_REQUEST, "Valid platform parameter (ANDROID, MACOS, etc.) is required"))
+                }
+
+                val channelParam = call.request.queryParameters["channel"] ?: "STABLE"
+                val channel = try {
+                    ReleaseChannel.valueOf(channelParam.uppercase())
+                } catch (e: Exception) {
+                    ReleaseChannel.STABLE
+                }
+
+                val release = service.getLatestClientApp(platform, channel)
+                if (release != null) {
+                    call.respond(HttpStatusCode.OK, ApiEnvelope.ok(release))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, ApiEnvelope.failure<Unit>(ErrorCode.NOT_FOUND, "No release found for $platform channel $channel"))
+                }
+            }
+
+            post("/publish") {
+                val req = call.receive<PublishClientAppRequest>()
+                val created = service.publishClientApp(req)
+                call.respond(HttpStatusCode.Created, ApiEnvelope.ok(created))
+            }
+        }
     }
 }
 
 fun main() {
+    val dbFileDir = File("/home/sbx/data").apply { mkdirs() }
+    val defaultH2Url = if (dbFileDir.exists() && dbFileDir.canWrite()) {
+        "jdbc:h2:file:/home/sbx/data/vpn_registry;DB_CLOSE_DELAY=-1"
+    } else {
+        "jdbc:h2:file:./data/vpn_registry;DB_CLOSE_DELAY=-1"
+    }
+
     Database.connect(
-        url = System.getenv("JDBC_DATABASE_URL") ?: "jdbc:h2:mem:vpn_registry;DB_CLOSE_DELAY=-1",
+        url = System.getenv("JDBC_DATABASE_URL") ?: defaultH2Url,
         driver = System.getenv("JDBC_DRIVER") ?: "org.h2.Driver",
         user = System.getenv("DB_USER") ?: "sa",
         password = System.getenv("DB_PASSWORD") ?: ""
@@ -297,13 +377,45 @@ fun main() {
 
     transaction {
         SchemaUtils.create(
+            UsersTable,
             ProfilesTable,
             ProfileVersionsTable,
             ChannelPublicationsTable,
             DevicesTable,
             EnrollmentTokensTable,
-            AuditLogsTable
+            AuditLogsTable,
+            ClientAppReleasesTable
         )
+
+        // Auto-seed default admin if no users exist
+        val hasUsers = UsersTable.selectAll().count() > 0
+        if (!hasUsers) {
+            val salt = PasswordService.generateSalt()
+            val passwordHash = PasswordService.hashPassword("Password123!", salt)
+            val now = System.currentTimeMillis()
+            UsersTable.insert {
+                it[id] = "usr-admin-seed"
+                it[username] = "admin"
+                it[UsersTable.passwordHash] = passwordHash
+                it[UsersTable.salt] = salt
+                it[totpSecret] = "SGZUJEORAE4DNP5UZNVQMX2N6QH2MD2S"
+                it[role] = UserRole.ADMIN.name
+                it[status] = UserStatus.ACTIVE.name
+                it[createdAtEpochMs] = now
+                it[updatedAtEpochMs] = now
+            }
+        }
+
+        // Auto-seed default profile if empty
+        val hasProfiles = ProfilesTable.selectAll().count() > 0
+        if (!hasProfiles) {
+            ProfilesTable.insert {
+                it[id] = "default"
+                it[name] = "Default Profile"
+                it[description] = "Standard corporate gateway profile"
+                it[createdAtEpochMs] = System.currentTimeMillis()
+            }
+        }
     }
 
     embeddedServer(Netty, port = System.getenv("PORT")?.toIntOrNull() ?: 8080, host = "0.0.0.0", module = Application::module)
