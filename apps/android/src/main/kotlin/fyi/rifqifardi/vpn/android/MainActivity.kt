@@ -68,7 +68,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
         }
         val brandTitle = TextView(this).apply {
-            text = "Vault VPN"
+            text = "VPN Distribution"
             textSize = 24f   // SP — not a density bug; leave as-is
             setTextColor(KumoColors.PrimaryText.toInt())
             typeface = android.graphics.Typeface.DEFAULT_BOLD
