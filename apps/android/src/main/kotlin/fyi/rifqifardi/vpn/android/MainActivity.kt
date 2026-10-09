@@ -8,6 +8,8 @@ import android.graphics.drawable.GradientDrawable
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
@@ -38,7 +40,11 @@ import kotlinx.coroutines.launch
  */
 class MainActivity : Activity() {
 
-    private val scope = CoroutineScope(Dispatchers.Main)
+    // Android's platform main looper is available before coroutine service-loader
+    // initialization. Keep activity startup independent of Dispatchers.Main so a
+    // broken/missing MainDispatcherFactory cannot abort onCreate.
+    private val scope = CoroutineScope(Dispatchers.Unconfined)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var statusBadge: TextView
     private lateinit var connectButton: Button
     private lateinit var profileCard: LinearLayout
@@ -245,7 +251,7 @@ class MainActivity : Activity() {
         // Observe Kotlin StateFlow
         scope.launch {
             AndroidTunnelController.state.collect { state ->
-                updateUiForState(state)
+                mainHandler.post { updateUiForState(state) }
             }
         }
     }
