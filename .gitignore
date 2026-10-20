@@ -8,3 +8,6 @@ build
 *.aab
 # Local Android SDK configuration
 local.properties
+# Generated JavaScript dependencies and bundles
+**/node_modules/
+**/dist/
