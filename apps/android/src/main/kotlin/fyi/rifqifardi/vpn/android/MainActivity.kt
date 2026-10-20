@@ -51,6 +51,13 @@ class MainActivity : Activity() {
     private lateinit var activeVersionText: TextView
     private lateinit var lkgVersionText: TextView
     private lateinit var journalStatusText: TextView
+    private lateinit var onboardingPanel: LinearLayout
+    private lateinit var onboardingMessage: TextView
+    private lateinit var onboardingAction: Button
+    private lateinit var onboardingStore: OnboardingStore
+    private val registryClient = RegistryClient()
+    private var onboardingState = OnboardingState.UNCONFIGURED
+    private var onboardingBusy = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +66,8 @@ class MainActivity : Activity() {
             setBackgroundColor(KumoColors.Base.toInt())
             isFillViewport = true
         }
+
+        onboardingStore = OnboardingStore(this)
 
         val mainLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -103,6 +112,27 @@ class MainActivity : Activity() {
             padVertical(this@MainActivity, KumoDimens.MetaLineGap, KumoDimens.HeaderBottomGap)
         }
         mainLayout.addView(subLead)
+
+        onboardingPanel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = kumoSurface(this@MainActivity, KumoColors.Elevated.toInt(), KumoColors.Line.toInt(), cornerRadiusDp = KumoDimens.RadiusCard)
+            padAll(this@MainActivity, KumoDimens.CardPadding)
+            layoutParams = matchWrapWithTopMargin(this@MainActivity, KumoDimens.CardGap)
+        }
+        onboardingMessage = TextView(this).apply {
+            setTextColor(KumoColors.PrimaryText.toInt())
+            textSize = 14f
+        }
+        onboardingPanel.addView(onboardingMessage)
+        onboardingAction = Button(this).apply {
+            setTextColor(Color.WHITE)
+            textSize = 14f
+            minimumHeight = KumoDimens.ButtonMinHeight.dpInt(this@MainActivity)
+            background = kumoSurface(this@MainActivity, KumoColors.Brand.toInt(), cornerRadiusDp = KumoDimens.RadiusButton)
+            setOnClickListener { handleOnboardingAction() }
+        }
+        onboardingPanel.addView(onboardingAction)
+        mainLayout.addView(onboardingPanel)
 
         // ── Hero Connection Panel (Elevated Card) ────────────────────────────────────────
         val heroPanel = LinearLayout(this).apply {
@@ -236,6 +266,7 @@ class MainActivity : Activity() {
 
         rootScroll.addView(mainLayout)
         setContentView(rootScroll)
+        renderOnboarding()
 
         // ── WindowInsets: consume system bars so content is never occluded ────────────────
         // targetSdk 35 forces edge-to-edge; minSdk 26 means we must branch on API level.
@@ -296,6 +327,154 @@ class MainActivity : Activity() {
             insets
         }
         rootScroll.requestApplyInsets()
+    }
+
+    private fun renderOnboarding() {
+        onboardingState = deriveOnboardingState(onboardingStore.registryUrl, onboardingStore.deviceId)
+        when (onboardingState) {
+            OnboardingState.UNCONFIGURED -> {
+                onboardingMessage.text = "Connect this device to your registry. Your administrator provides the HTTPS address and one-time enrollment token."
+                onboardingAction.text = "Set up this device"
+                onboardingAction.isEnabled = !onboardingBusy
+            }
+            OnboardingState.NOT_ENROLLED -> {
+                onboardingMessage.text = "Registry saved. Enroll this device with the one-time token from your administrator."
+                onboardingAction.text = "Enter enrollment token"
+                onboardingAction.isEnabled = !onboardingBusy
+            }
+            OnboardingState.PROFILE_SYNC_REQUIRED -> {
+                onboardingMessage.text = "Device enrolled. Profile sync and signature verification are required before VPN connection."
+                onboardingAction.text = "Profile sync unavailable"
+                onboardingAction.isEnabled = false
+            }
+            OnboardingState.CHECKING_REGISTRY -> {
+                onboardingMessage.text = "Checking registry…"
+                onboardingAction.text = "Checking…"
+                onboardingAction.isEnabled = false
+            }
+            OnboardingState.REGISTRY_UNAVAILABLE -> {
+                onboardingMessage.text = "Registry unavailable. Check the address and network, then try again."
+                onboardingAction.text = "Try again"
+                onboardingAction.isEnabled = !onboardingBusy
+            }
+            OnboardingState.ENROLLING -> {
+                onboardingMessage.text = "Enrolling this device…"
+                onboardingAction.text = "Enrolling…"
+                onboardingAction.isEnabled = false
+            }
+            OnboardingState.ENROLLMENT_ERROR -> {
+                onboardingMessage.text = "Enrollment failed. Check the one-time token or contact your administrator."
+                onboardingAction.text = "Try again"
+                onboardingAction.isEnabled = !onboardingBusy
+            }
+            OnboardingState.ENROLLMENT_FAILED -> {
+                onboardingMessage.text = "Enrollment is not complete. Profile sync and VPN connection remain unavailable."
+                onboardingAction.text = "Review setup"
+                onboardingAction.isEnabled = !onboardingBusy
+            }
+        }
+        onboardingPanel.visibility = View.VISIBLE
+        // The current service is a TUN shell without OpenVPN packet forwarding.
+        // Do not present it as a usable VPN until profile sync, preflight, and data-path evidence exist.
+        connectButton.isEnabled = false
+        connectButton.alpha = 0.55f
+    }
+
+    private fun handleOnboardingAction() {
+        if (onboardingBusy) return
+        when (onboardingState) {
+            OnboardingState.UNCONFIGURED,
+            OnboardingState.REGISTRY_UNAVAILABLE,
+            OnboardingState.ENROLLMENT_ERROR -> showRegistryDialog()
+            OnboardingState.NOT_ENROLLED -> showEnrollmentDialog()
+            OnboardingState.PROFILE_SYNC_REQUIRED -> Unit
+            else -> Unit
+        }
+    }
+
+    private fun showRegistryDialog() {
+        val input = android.widget.EditText(this).apply {
+            hint = "https://registry.example.com"
+            setSingleLine(true)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
+            setText(onboardingStore.registryUrl.orEmpty())
+            isSaveEnabled = false
+        }
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("Connect to your registry")
+            .setMessage("Use the HTTPS address provided by your administrator.")
+            .setView(input)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Test connection", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val url = input.text.toString().trim().trimEnd('/')
+                if (url.isBlank()) { input.error = "Registry address is required"; return@setOnClickListener }
+                onboardingBusy = true
+                onboardingState = OnboardingState.CHECKING_REGISTRY
+                renderOnboarding()
+                scope.launch {
+                    val result = registryClient.checkHealth(url)
+                    mainHandler.post {
+                        onboardingBusy = false
+                        if (result.isSuccess) {
+                            onboardingStore.registryUrl = url
+                            onboardingState = OnboardingState.NOT_ENROLLED
+                            dialog.dismiss()
+                        } else {
+                            onboardingState = OnboardingState.REGISTRY_UNAVAILABLE
+                            input.error = "Registry unavailable"
+                        }
+                        renderOnboarding()
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showEnrollmentDialog() {
+        val input = android.widget.EditText(this).apply {
+            hint = "One-time enrollment token"
+            setSingleLine(true)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            // Prevent Android view-state restoration from retaining the bearer token.
+            isSaveEnabled = false
+        }
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("Enroll this device")
+            .setMessage("Paste the single-use token supplied by your administrator. The app will not store it.")
+            .setView(input)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Enroll device", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val token = input.text.toString()
+                val url = onboardingStore.registryUrl
+                if (token.isBlank() || url.isNullOrBlank()) { input.error = "Token and registry are required"; return@setOnClickListener }
+                onboardingBusy = true
+                onboardingState = OnboardingState.ENROLLING
+                renderOnboarding()
+                scope.launch {
+                    val result = registryClient.enroll(url, token)
+                    input.text.clear()
+                    mainHandler.post {
+                        onboardingBusy = false
+                        result.onSuccess { credentials ->
+                            onboardingStore.saveEnrollment(credentials.deviceId, credentials.apiKey, credentials.signingPublicKeyBase64)
+                            onboardingState = OnboardingState.PROFILE_SYNC_REQUIRED
+                            dialog.dismiss()
+                        }.onFailure {
+                            onboardingState = OnboardingState.ENROLLMENT_ERROR
+                        }
+                        renderOnboarding()
+                    }
+                }
+            }
+        }
+        dialog.show()
     }
 
     private fun updateUiForState(state: TunnelState) {
