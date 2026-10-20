@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "vpn-kmp-platform"
+rootProject.name = "distribute-ovpn"
 
 // Shared KMP modules
 include(":shared:api-model")

@@ -67,7 +67,7 @@ fun Application.module(service: ProfileRegistryService = ProfileRegistryService(
         fun resolveFile(relPath: String): File {
             val direct = File(relPath)
             if (direct.exists()) return direct
-            val fromHome = File("/home/sbx/work/vpn-kmp-platform", relPath)
+            val fromHome = File("/home/sbx/work/distribute-ovpn", relPath)
             if (fromHome.exists()) return fromHome
             return File(rootDir, relPath)
         }

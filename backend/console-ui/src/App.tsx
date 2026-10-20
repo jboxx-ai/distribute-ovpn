@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Shield, Activity, Smartphone, FileText, CheckCircle2, 
+import {
+  Shield, Activity, Smartphone, FileText, CheckCircle2,
   Key, Plus, Lock, ChevronRight, RefreshCw, LogOut, User, Download, Copy
 } from 'lucide-react';
 
@@ -88,12 +88,12 @@ export const App: React.FC = () => {
   const [isCreateProfileModalOpen, setIsCreateProfileModalOpen] = useState(false);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  
+
   // Form states
   const [newProfileId, setNewProfileId] = useState('');
   const [newProfileName, setNewProfileName] = useState('');
   const [newProfileDesc, setNewProfileDesc] = useState('');
-  
+
   const [newDeviceName, setNewDeviceName] = useState('');
   const [newDevicePlatform, setNewDevicePlatform] = useState('ANDROID');
   const [newDeviceProfile, setNewDeviceProfile] = useState('');
@@ -427,14 +427,14 @@ export const App: React.FC = () => {
               </span>
             </div>
           )}
-          <button 
+          <button
             onClick={() => loadData()}
             className="flex items-center gap-1.5 text-xs text-[#8B949E] hover:text-[#E6EDF3] px-2.5 py-1.5 rounded border border-[#30363D] bg-[#0D1117] hover:border-[#8B949E] transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#F38020]' : ''}`} />
             Refresh
           </button>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-xs text-[#F85149] hover:text-[#F85149]/80 px-2.5 py-1.5 rounded border border-[#30363D] bg-[#0D1117] hover:border-[#F85149]/50 transition-colors"
           >
@@ -540,7 +540,7 @@ export const App: React.FC = () => {
                 <p className="text-xs text-[#8B949E] max-w-sm mx-auto mt-1 mb-4">
                   The database is currently empty. Get started by creating your first VPN profile definition.
                 </p>
-                <button 
+                <button
                   onClick={() => setIsCreateProfileModalOpen(true)}
                   className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#F38020] px-4 py-2 rounded shadow-sm hover:bg-[#F38020]/90"
                 >
@@ -552,7 +552,7 @@ export const App: React.FC = () => {
               <div className="bg-[#161B22] border border-[#30363D] rounded overflow-hidden">
                 <div className="px-4 py-3 border-b border-[#30363D] flex justify-between items-center">
                   <h3 className="text-xs font-semibold text-[#8B949E] uppercase tracking-wider">Registered Profile Clusters</h3>
-                  <button 
+                  <button
                     onClick={() => setIsCreateProfileModalOpen(true)}
                     className="text-xs text-[#F38020] hover:underline flex items-center gap-1 font-medium"
                   >
@@ -586,7 +586,7 @@ export const App: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button 
+                          <button
                             onClick={() => { setSelectedProfileId(p.id); setActiveTab('profiles'); }}
                             className="text-xs text-[#58A6FF] hover:underline"
                           >
@@ -606,7 +606,7 @@ export const App: React.FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-sm font-semibold">VPN Profiles & Version Manifests</h2>
-              <button 
+              <button
                 onClick={() => setIsCreateProfileModalOpen(true)}
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-[#F38020] px-3 py-1.5 rounded shadow-sm hover:bg-[#F38020]/90"
               >
@@ -626,7 +626,7 @@ export const App: React.FC = () => {
                 <div className="bg-[#161B22] border border-[#30363D] rounded divide-y divide-[#30363D]">
                   <div className="px-4 py-3 font-semibold text-xs text-[#8B949E] uppercase">Profiles</div>
                   {profiles.map(p => (
-                    <button 
+                    <button
                       key={p.id}
                       onClick={() => setSelectedProfileId(p.id)}
                       className={`w-full text-left p-4 hover:bg-[#0D1117]/50 transition-colors flex items-center justify-between ${
@@ -652,7 +652,7 @@ export const App: React.FC = () => {
                             {profiles.find(p => p.id === selectedProfileId)?.description || 'No description provided'}
                           </p>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setIsUploadModalOpen(true)}
                           className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#F38020] hover:bg-[#F38020]/90 px-3 py-1.5 rounded transition-colors"
                         >
@@ -698,7 +698,7 @@ export const App: React.FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-sm font-semibold">Enrolled Fleet Devices</h2>
-              <button 
+              <button
                 onClick={() => { setGeneratedToken(null); setIsEnrollModalOpen(true); }}
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-[#F38020] px-3 py-1.5 rounded shadow-sm hover:bg-[#F38020]/90"
               >
@@ -748,7 +748,7 @@ export const App: React.FC = () => {
                         </td>
                         <td className="px-4 py-3 text-right">
                           {d.status === 'ACTIVE' && (
-                            <button 
+                            <button
                               onClick={() => handleRevokeDevice(d.deviceId)}
                               className="text-xs text-[#F85149] hover:underline"
                             >
@@ -814,16 +814,16 @@ export const App: React.FC = () => {
 
                 <div className="space-y-3 pt-2 border-t border-[#30363D]">
                   <a
-                    href="/assets/vpn-kmp-platform-debug-signed.apk"
-                    download="vpn-kmp-platform-debug-signed.apk"
+                    href="/assets/distribute-ovpn-debug-signed.apk"
+                    download="distribute-ovpn-debug-signed.apk"
                     className="w-full bg-[#F38020] hover:bg-[#F38020]/90 text-white text-xs font-medium py-2.5 px-4 rounded flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
                     <Download className="w-4 h-4" />
                     Download Signed APK (.apk)
                   </a>
-                  <button 
+                  <button
                     onClick={() => {
-                      navigator.clipboard.writeText(window.location.origin + '/assets/vpn-kmp-platform-debug-signed.apk');
+                      navigator.clipboard.writeText(window.location.origin + '/assets/distribute-ovpn-debug-signed.apk');
                       showToast('Direct download URL copied to clipboard');
                     }}
                     className="w-full bg-[#0D1117] hover:border-[#8B949E] border border-[#30363D] text-[#8B949E] hover:text-[#E6EDF3] text-xs py-2 px-4 rounded flex items-center justify-center gap-1.5 transition-colors"
@@ -873,14 +873,14 @@ export const App: React.FC = () => {
                 </div>
 
                 <div className="space-y-3 pt-2 border-t border-[#30363D]">
-                  <button 
+                  <button
                     onClick={() => showToast('macOS Universal DMG is compiled via GitHub Actions macOS runner.')}
                     className="w-full bg-[#238636] hover:bg-[#2EA043] text-white text-xs font-medium py-2.5 px-4 rounded flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
                     <Download className="w-4 h-4" />
                     Download macOS DMG (.dmg)
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       navigator.clipboard.writeText(`curl -fsSL ${window.location.origin}/api/v1/client-apps/latest?platform=MACOS | jq -r .data.downloadUrl`);
                       showToast('CLI curl snippet copied');
@@ -914,11 +914,11 @@ export const App: React.FC = () => {
                       <td className="px-4 py-2.5 text-[#3FB950] font-semibold">ANDROID</td>
                       <td className="px-4 py-2.5 text-[#E6EDF3]">0.1.0</td>
                       <td className="px-4 py-2.5 text-[#58A6FF]">STABLE</td>
-                      <td className="px-4 py-2.5 text-[#8B949E]">vpn-kmp-platform-debug-signed.apk</td>
+                      <td className="px-4 py-2.5 text-[#8B949E]">distribute-ovpn-debug-signed.apk</td>
                       <td className="px-4 py-2.5 text-[#8B949E]">Android 8.0 (API 26)</td>
                       <td className="px-4 py-2.5">
-                        <a 
-                          href="/assets/vpn-kmp-platform-debug-signed.apk" 
+                        <a
+                          href="/assets/distribute-ovpn-debug-signed.apk"
                           download
                           className="text-[#F38020] hover:underline flex items-center gap-1"
                         >
@@ -990,8 +990,8 @@ export const App: React.FC = () => {
             <form onSubmit={handleCreateProfile} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-[#8B949E] mb-1">Profile ID (Slug)</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   placeholder="e.g. eng-corp-gw"
                   value={newProfileId}
@@ -1001,8 +1001,8 @@ export const App: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs font-medium text-[#8B949E] mb-1">Display Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   placeholder="e.g. Engineering Gateway"
                   value={newProfileName}
@@ -1012,7 +1012,7 @@ export const App: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs font-medium text-[#8B949E] mb-1">Description (Optional)</label>
-                <textarea 
+                <textarea
                   placeholder="Purpose and access controls"
                   value={newProfileDesc}
                   onChange={e => setNewProfileDesc(e.target.value)}
@@ -1020,14 +1020,14 @@ export const App: React.FC = () => {
                 />
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsCreateProfileModalOpen(false)}
                   className="px-3 py-1.5 text-xs text-[#8B949E] hover:text-[#E6EDF3]"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="px-4 py-1.5 text-xs font-medium text-white bg-[#F38020] rounded hover:bg-[#F38020]/90"
                 >
@@ -1044,7 +1044,7 @@ export const App: React.FC = () => {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-[#161B22] border border-[#30363D] rounded-lg max-w-md w-full p-6 space-y-4">
             <h3 className="text-base font-semibold">Issue Device Enrollment Token</h3>
-            
+
             {generatedToken ? (
               <div className="space-y-4">
                 <div className="p-3 bg-[#010409] border border-[#3FB950]/30 rounded space-y-2">
@@ -1057,7 +1057,7 @@ export const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <button 
+                  <button
                     onClick={() => setIsEnrollModalOpen(false)}
                     className="px-4 py-1.5 text-xs font-medium text-white bg-[#F38020] rounded hover:bg-[#F38020]/90"
                   >
@@ -1069,8 +1069,8 @@ export const App: React.FC = () => {
               <form onSubmit={handleCreateToken} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-[#8B949E] mb-1">Device Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     placeholder="e.g. MacBook-Pro-Dev"
                     value={newDeviceName}
@@ -1081,7 +1081,7 @@ export const App: React.FC = () => {
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-[#8B949E] mb-1">Platform</label>
-                    <select 
+                    <select
                       value={newDevicePlatform}
                       onChange={e => setNewDevicePlatform(e.target.value)}
                       className="w-full bg-[#0D1117] border border-[#30363D] rounded px-3 py-2 text-xs focus:border-[#F38020] outline-none"
@@ -1092,7 +1092,7 @@ export const App: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-[#8B949E] mb-1">Profile</label>
-                    <select 
+                    <select
                       value={newDeviceProfile || profiles[0]?.id || ''}
                       onChange={e => setNewDeviceProfile(e.target.value)}
                       className="w-full bg-[#0D1117] border border-[#30363D] rounded px-3 py-2 text-xs focus:border-[#F38020] outline-none"
@@ -1104,7 +1104,7 @@ export const App: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-[#8B949E] mb-1">Channel</label>
-                    <select 
+                    <select
                       value={newDeviceChannel}
                       onChange={e => setNewDeviceChannel(e.target.value)}
                       className="w-full bg-[#0D1117] border border-[#30363D] rounded px-3 py-2 text-xs focus:border-[#F38020] outline-none"
@@ -1116,14 +1116,14 @@ export const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setIsEnrollModalOpen(false)}
                     className="px-3 py-1.5 text-xs text-[#8B949E] hover:text-[#E6EDF3]"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     className="px-4 py-1.5 text-xs font-medium text-white bg-[#F38020] rounded hover:bg-[#F38020]/90"
                   >
@@ -1147,7 +1147,7 @@ export const App: React.FC = () => {
             <form onSubmit={handleUploadVersion} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-[#8B949E] mb-1">OpenVPN Directives</label>
-                <textarea 
+                <textarea
                   required
                   placeholder="client&#10;dev tun&#10;proto udp&#10;remote vpn.corp.internal 1194"
                   value={ovpnContent}
@@ -1156,14 +1156,14 @@ export const App: React.FC = () => {
                 />
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsUploadModalOpen(false)}
                   className="px-3 py-1.5 text-xs text-[#8B949E] hover:text-[#E6EDF3]"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="px-4 py-1.5 text-xs font-medium text-white bg-[#F38020] rounded hover:bg-[#F38020]/90"
                 >
