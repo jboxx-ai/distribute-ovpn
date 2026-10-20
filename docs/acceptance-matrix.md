@@ -30,5 +30,5 @@ A release candidate passes only when all of these are demonstrated:
 7. Beta clients reject or roll back without losing the last-known-good version.
 8. Rollout is paused and stable clients remain untouched.
 9. A device is revoked and can no longer fetch protected profile data.
-10. Registry is stopped; both clients can still use their already verified active profile.
+10. Registry is stopped; clients fail closed for new activation and report unavailable authorization rather than claiming that cached credentials permit offline activation.
 11. Backup is restored into a clean deployment and manifest/device assignment state matches the backup point.

@@ -1,4 +1,4 @@
-# KMP VPN Profile Platform — End-to-End OpenSpec Plan
+# Distribute OVPN
 
 A phased implementation plan for a self-hosted VPN profile registry and first-party Android/macOS OpenVPN clients in one Kotlin Multiplatform monorepo.
 
@@ -84,3 +84,17 @@ Phases 06–07 complete. Administration, audit, backups, observability, security
 - remote arbitrary script execution
 - generic MDM functionality
 - in-app profile editing beyond safe metadata
+
+## Documentation
+
+The implementation plan and project documentation are in [`docs/`](docs/), including:
+
+- [`docs/architecture.md`](docs/architecture.md)
+- [`docs/roadmap.md`](docs/roadmap.md)
+- [`docs/implementation-order.md`](docs/implementation-order.md)
+- [`docs/acceptance-matrix.md`](docs/acceptance-matrix.md)
+- [`docs/security-model.md`](docs/security-model.md)
+- [`docs/wiki/`](docs/wiki/)
+- [`docs/prototypes/`](docs/prototypes/)
+
+OpenSpec configuration is stored in [`openspec/config.yaml`](openspec/config.yaml).

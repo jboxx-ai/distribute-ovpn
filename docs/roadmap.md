@@ -5,7 +5,7 @@
 | 00 Foundation | none | monorepo builds on CI; shared test app compiles for JVM/Android/Apple |
 | 01 Profile Registry | 00 | versioned `.ovpn` upload/fetch works with immutable history |
 | 02 Device Trust | 01 | enrolled device can authenticate and verify signed profile |
-| 03 Android Client | 02 | Android can sync, connect, disconnect, and report tunnel status |
+| 03 Android Client | 02 | Android completes the state-driven enrollment journey, syncs a verified profile, handles VPN permission, and demonstrates real connect/disconnect evidence |
 | 04 macOS Client | 02 | macOS can sync, install NetworkExtension config, connect, disconnect |
 | 05 Safe Sync & Rollout | 03,04 | atomic update + rollback + channels demonstrated on both platforms |
 | 06 Operations & Admin | 05 | CLI, audit, metrics, backups and restore drill pass |

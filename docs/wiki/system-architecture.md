@@ -36,7 +36,7 @@ The platform separates the **control plane** (responsible for policy validation,
 ## 2. Monorepo Structural Blueprint
 
 ```text
-vpn-kmp-platform/
+distribute-ovpn/
 ├── backend/
 │   ├── registry-server/               # Ktor HTTP REST Control Plane
 │   └── admin-cli/                     # vpnctl administrative CLI
